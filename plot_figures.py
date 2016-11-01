@@ -1,6 +1,8 @@
 ## Plots figures
-## command line : python plot_figures.py 1000 10 0
+## command line : python plot_figures.py 1000 10 0 text_files/Initial_Conditions_Callisto.txt
 ## this command plots 1000 particules that were simulated on 10 jobs using script_ID = 0
+# using the argument "all" instead of 1000 will plot all particles in the initial conditions file
+
 
 from math import *
 import numpy as np
@@ -366,45 +368,45 @@ def plot_figs(yps, tps, accps, orbitps, kounts, t1, row, particleID):
     plt.ylabel('Inclination of trajectory of particle [radians]')
     plt.title('Inclination of trajectory of particle ')
 
-    ## plot of the three components for a given acceleration vector as a function of distanc
-    distance_sorted = sorted(distance)
-    sort_index = np.argsort(distance) # returns the indices of the sorted distance vector
-    accp_sorted = np.zeros((8,3,kmax))
-    for i in range(kounts[particleID]):
-        accp_sorted[:,:,i] = accps[:,:,sort_index[i],particleID]
-
-    index = 0 # indicates which acceleration we are considering : ag, ags, ace, aco, alo, apr, apd, amoons
-    fig13 = plt.figure(13)
-    handle1, = plt.plot(distance_sorted, accp_sorted[index, 0, 0:kounts[particleID]], label='x-component of acceleration vector', c='r')
-    handle2, = plt.plot(distance_sorted, accp_sorted[index, 1, 0:kounts[particleID]], label='y-component of acceleration vector', c='b')
-    handle3, = plt.plot(distance_sorted, accp_sorted[index, 2, 0:kounts[particleID]], label='z-component of acceleration vector', c='g')
-    handle4, = plt.plot(distance_sorted, np.sqrt(accp_sorted[index, 0, 0:kounts[particleID]]**2 + accp_sorted[index, 1, 0:kounts[particleID]]**2 +accp_sorted[index, 2, 0:kounts[particleID]]**2), label='magnitude of acceleration vector', c='k')
-    plt.legend(handles=[handle1, handle2, handle3, handle4], loc = 'best')
-    plt.xlabel('Distance [km]')
-    plt.ylabel('Acceleration [km/s^2]')
-    plt.title('Components for a given acceleration vector')
-
-    index = 4  # indicates which acceleration we are considering : ag, ags, ace, aco, alo, apr, apd, amoons
-    fig14 = plt.figure(14)
-    handle1, = plt.plot(distance_sorted, accp_sorted[index, 0, 0:kounts[particleID]], label='x-component of acceleration vector', c='r')
-    handle2, = plt.plot(distance_sorted, accp_sorted[index, 1, 0:kounts[particleID]], label='y-component of acceleration vector', c='b')
-    handle3, = plt.plot(distance_sorted, accp_sorted[index, 2, 0:kounts[particleID]], label='z-component of acceleration vector', c='g')
-    handle4, = plt.plot(distance_sorted, np.sqrt(accp_sorted[index, 0, 0:kounts[particleID]]**2 + accp_sorted[index, 1, 0:kounts[particleID]]**2 +accp_sorted[index, 2, 0:kounts[particleID]]**2), label='magnitude of acceleration vector', c='k')
-    plt.legend(handles=[handle1, handle2, handle3, handle4], loc='best')
-    plt.xlabel('Distance [km]')
-    plt.ylabel('Acceleration [km/s^2]')
-    plt.title('Components for a given acceleration vector')
-
-    ## plot of the apocenter as a function of the distance
-    apocenter = 2*orbitps[0,:,particleID] - orbitps[2,:,particleID]
-    #apocenter_sorted = np.zeros((1,kmax))
-    #for i in range(kount):
-    #    apocenter_sorted[i] = apocenter[sort_index[i]]
-    fig15 = plt.figure(15)
-    plt.plot((tps[particleID, 0:kounts[particleID]] - t1) / 3600, apocenter[0:kounts[particleID]])
-    plt.xlabel('Time [hours]')
-    plt.ylabel('Apocenter distance [km]')
-    plt.title('Apocenter distance')
+    # ## plot of the three components for a given acceleration vector as a function of distanc
+    # distance_sorted = sorted(distance)
+    # sort_index = np.argsort(distance) # returns the indices of the sorted distance vector
+    # accp_sorted = np.zeros((8,3,kmax))
+    # for i in range(kounts[particleID]):
+    #     accp_sorted[:,:,i] = accps[:,:,sort_index[i],particleID]
+    #
+    # index = 0 # indicates which acceleration we are considering : ag, ags, ace, aco, alo, apr, apd, amoons
+    # fig13 = plt.figure(13)
+    # handle1, = plt.plot(distance_sorted, accp_sorted[index, 0, 0:kounts[particleID]], label='x-component of acceleration vector', c='r')
+    # handle2, = plt.plot(distance_sorted, accp_sorted[index, 1, 0:kounts[particleID]], label='y-component of acceleration vector', c='b')
+    # handle3, = plt.plot(distance_sorted, accp_sorted[index, 2, 0:kounts[particleID]], label='z-component of acceleration vector', c='g')
+    # handle4, = plt.plot(distance_sorted, np.sqrt(accp_sorted[index, 0, 0:kounts[particleID]]**2 + accp_sorted[index, 1, 0:kounts[particleID]]**2 +accp_sorted[index, 2, 0:kounts[particleID]]**2), label='magnitude of acceleration vector', c='k')
+    # plt.legend(handles=[handle1, handle2, handle3, handle4], loc = 'best')
+    # plt.xlabel('Distance [km]')
+    # plt.ylabel('Acceleration [km/s^2]')
+    # plt.title('Components for a given acceleration vector')
+    #
+    # index = 4  # indicates which acceleration we are considering : ag, ags, ace, aco, alo, apr, apd, amoons
+    # fig14 = plt.figure(14)
+    # handle1, = plt.plot(distance_sorted, accp_sorted[index, 0, 0:kounts[particleID]], label='x-component of acceleration vector', c='r')
+    # handle2, = plt.plot(distance_sorted, accp_sorted[index, 1, 0:kounts[particleID]], label='y-component of acceleration vector', c='b')
+    # handle3, = plt.plot(distance_sorted, accp_sorted[index, 2, 0:kounts[particleID]], label='z-component of acceleration vector', c='g')
+    # handle4, = plt.plot(distance_sorted, np.sqrt(accp_sorted[index, 0, 0:kounts[particleID]]**2 + accp_sorted[index, 1, 0:kounts[particleID]]**2 +accp_sorted[index, 2, 0:kounts[particleID]]**2), label='magnitude of acceleration vector', c='k')
+    # plt.legend(handles=[handle1, handle2, handle3, handle4], loc='best')
+    # plt.xlabel('Distance [km]')
+    # plt.ylabel('Acceleration [km/s^2]')
+    # plt.title('Components for a given acceleration vector')
+    #
+    # ## plot of the apocenter as a function of the distance
+    # apocenter = 2*orbitps[0,:,particleID] - orbitps[2,:,particleID]
+    # #apocenter_sorted = np.zeros((1,kmax))
+    # #for i in range(kount):
+    # #    apocenter_sorted[i] = apocenter[sort_index[i]]
+    # fig15 = plt.figure(15)
+    # plt.plot((tps[particleID, 0:kounts[particleID]] - t1) / 3600, apocenter[0:kounts[particleID]])
+    # plt.xlabel('Time [hours]')
+    # plt.ylabel('Apocenter distance [km]')
+    # plt.title('Apocenter distance')
 
 
     plt.show()
@@ -418,7 +420,16 @@ if __name__ == "__main__":
     spice.furnsh(metakernel)
 
     args = sys.argv  # arguments from the command line
-    total_num_particles = int(args[1])
+
+    try:
+        total_num_particles = int(args[1])
+    except ValueError:
+        ic_file = args[4]
+        file = open(ic_file,'r')  # file contains initial positions and velocities of particles in IAU_JUPITER frame at time t1
+        lines = file.readlines()  # array of lines (each line represents a particle)
+        file.close()
+        total_num_particles = np.size(lines)
+
     num_jobs = int(args[2])  # number of jobs used in the simulation
     script_ID = int(args[3])  # if we are calling several times super_script.py (for example to simulate initial conditions from different moons), this identifier is useful
 
