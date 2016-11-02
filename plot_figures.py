@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 import spiceypy as spice
 import sys
+import os
 
 ## uses SPICE to transform position and velocity contained in y from the the Jupiter Inertial Frame (JIF) to the IAU_JUPITER body-fixed frame
 def spice_rot2inert(y,t):
@@ -24,8 +25,10 @@ def spice_rot2inert(y,t):
     return yout
 
 # plot figures in Jupiter body-fixed frame
-def plot_figs(yps, tps, accps, orbitps, kounts, t1, row, particleID):
-    print('Plotting...')
+def plot_figs(yps, tps, accps, orbitps, kounts, t1, row, particleID, script_ID):
+    #print('Plotting...')
+
+    #os.makedirs('Figures/')
 
     ## Converting position and velocity of particle from IAU_JUPITER to JIF
     yps_inert = np.zeros((5, 6, itermax, row))  # initialization
@@ -102,7 +105,7 @@ def plot_figs(yps, tps, accps, orbitps, kounts, t1, row, particleID):
     axes.set_zlabel('Z-axis [km]')
     axes.set_label('3D plot of trajectory (INERTIAL FRAME)')
     axes.set_aspect('equal', 'datalim')
-
+    fig1.savefig('Figures/traj_3d_inertial_script_' + str(script_ID) + '.png')
 
     ## 3D plot of trajectory (ROTATING)
     # fig2 = plt.figure(2)
@@ -197,6 +200,7 @@ def plot_figs(yps, tps, accps, orbitps, kounts, t1, row, particleID):
     plt.xlabel('X-axis [km]')
     plt.ylabel('Y-axis [km]')
     plt.axes().set_aspect('equal', 'datalim')
+    fig4.savefig('Figures/traj_xy_inertial_script_' + str(script_ID) + '.png')
 
 
     ## Projection of trajectory on X-Z plane (INERTIAL)
@@ -234,7 +238,7 @@ def plot_figs(yps, tps, accps, orbitps, kounts, t1, row, particleID):
     plt.ylabel('Z-axis [km]')
     plt.title('Projection of trajectory on X-Z plane (INERTIAL FRAME)')
     plt.axes().set_aspect('equal', 'datalim')
-
+    fig7.savefig('Figures/traj_xz_inertial_script_' + str(script_ID) + '.png')
 
     ## Projection of trajectory on Y-Z plane (INERTIAL)
     fig8 = plt.figure(8)
@@ -271,6 +275,7 @@ def plot_figs(yps, tps, accps, orbitps, kounts, t1, row, particleID):
     plt.ylabel('Z-axis [km]')
     plt.title('Projection of trajectory on Y-Z plane (INERTIAL FRAME)')
     plt.axes().set_aspect('equal', 'datalim')
+    fig8.savefig('Figures/traj_yz_inertial_script_' + str(script_ID) + '.png')
 
     # ## Projection of trajectory on X-Z plane (ROTATING)
     # fig9 = plt.figure(9)
@@ -332,6 +337,7 @@ def plot_figs(yps, tps, accps, orbitps, kounts, t1, row, particleID):
     plt.xlabel('Time [hours]')
     plt.ylabel('Energy [J]')
     plt.title('Energy of particle')
+    fig5.savefig('Figures/energy_script_' + str(script_ID) + '.png')
 
 
     ## Plot of accelerations due to different forces as a function of time
@@ -353,6 +359,7 @@ def plot_figs(yps, tps, accps, orbitps, kounts, t1, row, particleID):
     plt.xlabel('Time [hours]')
     plt.ylabel('Acceleration [km/s^2]')
     plt.title('Different accelerations on the particle')
+    fig6.savefig('Figures/accelerations_script_' + str(script_ID) + '.png')
 
     ## plot of semi-major axis
     fig11 = plt.figure(11)
@@ -360,6 +367,7 @@ def plot_figs(yps, tps, accps, orbitps, kounts, t1, row, particleID):
     plt.xlabel('Time [hours]')
     plt.ylabel('semi-major axis of particle [km]')
     plt.title('Semi-major axis of particle')
+    fig11.savefig('Figures/semi_major_axis_vs_time_script_' + str(script_ID) + '.png')
 
     ## plot of inclination of trajectory
     fig12 = plt.figure(12)
@@ -367,8 +375,9 @@ def plot_figs(yps, tps, accps, orbitps, kounts, t1, row, particleID):
     plt.xlabel('Time [hours]')
     plt.ylabel('Inclination of trajectory of particle [radians]')
     plt.title('Inclination of trajectory of particle ')
+    fig12.savefig('Figures/inclination_vs_time_script_' + str(script_ID) + '.png')
 
-    # ## plot of the three components for a given acceleration vector as a function of distanc
+    ## plot of the three components for a given acceleration vector as a function of distanc
     # distance_sorted = sorted(distance)
     # sort_index = np.argsort(distance) # returns the indices of the sorted distance vector
     # accp_sorted = np.zeros((8,3,kmax))
@@ -396,7 +405,7 @@ def plot_figs(yps, tps, accps, orbitps, kounts, t1, row, particleID):
     # plt.xlabel('Distance [km]')
     # plt.ylabel('Acceleration [km/s^2]')
     # plt.title('Components for a given acceleration vector')
-    #
+
     # ## plot of the apocenter as a function of the distance
     # apocenter = 2*orbitps[0,:,particleID] - orbitps[2,:,particleID]
     # #apocenter_sorted = np.zeros((1,kmax))
@@ -407,11 +416,8 @@ def plot_figs(yps, tps, accps, orbitps, kounts, t1, row, particleID):
     # plt.xlabel('Time [hours]')
     # plt.ylabel('Apocenter distance [km]')
     # plt.title('Apocenter distance')
-
-
     plt.show()
-
-
+    print('Figures from simulation ' + str(script_ID) + ' saved')
 
 
 
@@ -420,11 +426,11 @@ if __name__ == "__main__":
     spice.furnsh(metakernel)
 
     args = sys.argv  # arguments from the command line
+    ic_file = args[4]
 
     try:
         total_num_particles = int(args[1])
     except ValueError:
-        ic_file = args[4]
         file = open(ic_file,'r')  # file contains initial positions and velocities of particles in IAU_JUPITER frame at time t1
         lines = file.readlines()  # array of lines (each line represents a particle)
         file.close()
@@ -456,6 +462,6 @@ if __name__ == "__main__":
         temp = np.load('output_time_' + str(script_ID) + '_' + str(job_ID + 1) + '.npy')
         output_time = np.concatenate((output_time, temp), axis=0)
 
-    print('Output files regrouped')
+    #print('Output files regrouped')
 
-    plot_figs(output_state, output_time, output_acc, output_orbitelem, output_kounts, t1, total_num_particles, particleID)
+    plot_figs(output_state, output_time, output_acc, output_orbitelem, output_kounts, t1, total_num_particles, particleID, script_ID)

@@ -18,9 +18,8 @@ if __name__ == "__main__":
     ic_file = args[1]
 
     try:
-        num_particles = int(args[3])
+        num_particles = int(args[2])
     except ValueError:
-        ic_file = args[2]
         file = open(ic_file,'r')  # file contains initial positions and velocities of particles in IAU_JUPITER frame at time t1
         lines = file.readlines()  # array of lines (each line represents a particle)
         file.close()
@@ -34,25 +33,49 @@ if __name__ == "__main__":
     file.close()
     total_num_particles = np.size(lines) # total number of particles in a file of initial conditions
     num_particles_per_job = ceil(num_particles/num_jobs)
-    #print(num_particles_per_job)
-    #print(num_jobs)
-    #print(num_particles)
     diff = abs(num_particles_per_job*num_jobs - num_particles) # the last job will have diff less particles to simulate than the other jobs
-    #print(diff)
 
-    if num_particles > total_num_particles: sys.exit(0) # stops executing code
+    if num_particles > total_num_particles or num_jobs > num_particles:
+        print('Arguments are not valid')
+        sys.exit(0) # stops executing code
 
+    print('Script ' + str(script_ID) + ' launched...')
+
+    proc = [None] * num_jobs # empty list of subprocesses
     for job_ID in range(num_jobs):
         if job_ID < (num_jobs-1):
             print('Job ' + str(job_ID) + ' initialized')
-            #log = open('logfile_'+str(job_ID), 'w')
-            command = 'python Adaptive_RK_CK_particle_moons_jupiter_traj.py parameters_jupiter ' + ic_file + ' ' + str(num_particles_per_job) + ' ' + str(job_ID) + ' ' + str(script_ID)
-            proc = sp.Popen(command) #, shell = True, stdout = log, stderr = sp.PIPE)
+            command = 'python Adaptive_RK_CK_particle_moons_jupiter_traj.py ' + ic_file + ' ' + str(num_particles_per_job) + ' ' + str(job_ID) + ' ' + str(script_ID) + ' multi'
+            proc[job_ID] = sp.Popen(command) #, shell = True, stdout = log, stderr = sp.PIPE)
         elif job_ID == (num_jobs-1):
             print('Job ' + str(job_ID) + ' initialized')
-            #log = open('logfile_'+str(job_ID), 'w')
-            command = 'python Adaptive_RK_CK_particle_moons_jupiter_traj.py parameters_jupiter ' + ic_file + ' ' + str(num_particles_per_job-diff) + ' ' + str(job_ID) + ' ' + str(script_ID)
-            proc = sp.Popen(command) #, shell = True, stdout = log, stderr = sp.PIPE)
+            command = 'python Adaptive_RK_CK_particle_moons_jupiter_traj.py ' + ic_file + ' ' + str(num_particles_per_job-diff) + ' ' + str(job_ID) + ' ' + str(script_ID) + ' multi'
+            proc[job_ID] = sp.Popen(command) #, shell = True, stdout = log, stderr = sp.PIPE)
 
+    for i in range(num_jobs):
+        proc[i].wait()
+    print('All jobs are done')
+    os.system('python plot_figures.py ' + str(num_particles) + ' ' + str(num_jobs) + ' ' + str(script_ID) + ' ' + ic_file)
 
+    #exit_codes = [p.wait() for p in proc]
+    #print(exit_codes)
 
+    ## plot figures for the simulation containing the data from all the jobs
+    #print(proc)
+    # proc.wait() # checks that all subprocesses are finished
+    #for i in range(num_jobs):
+    #    proc[i].wait()
+
+    # bool = False
+    # for i in range(num_jobs):
+    #     if [p.wait() for p in proc] == 0:
+    #         bool = True
+    # print(bool)
+    # if bool:
+    #     os.system('python plot_figures.py ' + str(num_particles) + ' ' + str(num_jobs) + ' ' + str(script_ID) + ' ' + ic_file)
+
+    print('')
+    print('----------------------------')
+    print('ALL DONE')
+    print('')
+    print('Now, take a cup of coffee, sit back, relax and enjoy the results !')

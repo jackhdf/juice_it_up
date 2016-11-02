@@ -8,7 +8,7 @@ import numpy as np
 
 ## USER PARAMETERS
 duration = 100*24*3600 # duration of the simulation in real time [s]
-traj_flag = True  # if this flag is True then the trajectories of the particles are plotted in blue
+traj_flag = False  # if this flag is True then the trajectories of the particles are plotted in blue
 itermax = 10000000 # max number of iterations (increase if increase of the simulation time)
 particleID = 0  # ID of the particle for which to show energy and acceleration plots
 

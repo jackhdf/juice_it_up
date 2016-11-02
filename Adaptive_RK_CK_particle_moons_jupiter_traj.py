@@ -1,8 +1,9 @@
 # Numerical method : Runge-Kutta Cash-Karp or Bulirsch-Stoer (both adaptive step size)
 # Simulates the motion of particles under the influence of various forces
-# Command line : python Adaptive_RK_CK_particle_moons_jupiter_traj.py model_parameters_jupiter text_files/Initial_Conditions_Callisto.txt 1000 0 0
-# simulates 1000 particles starting from Callisto with job_ID = 0 and script_ID = 0
+# Command line : python Adaptive_RK_CK_particle_moons_jupiter_traj.py text_files/Initial_Conditions_Callisto.txt 1000 0 0 solo
+# simulates 1000 particles starting from Callisto with job_ID = 0 and script_ID = 0, and this script is not called from super_script.py so it will save figures to Figures/
 # using the argument "all" instead of 1000 will simulate all particles in the initial conditions file
+
 
 from math import *
 import numpy as np
@@ -939,6 +940,7 @@ def driver(ystart, t1, t2):
         hitMoon = hitMoons(y)
         traverseMoon = traverseMoons(yp[:,:,kount-1], y, tp[kount-1], t)
         outsideHill = sqrt(y[0,0]**2+y[0,1]**2+y[0,2]**2) > hill_radius
+        escape_msg = ''
 
         if (t-t2)*(t2-t1) >= 0. or hitJupiter or hitMoon or traverseMoon or outsideHill: # are we done? ie LHS is positive if t > t2 , ie we are done (second condition is to see if we hit Jupiter's surface
             #ystart = y # no real point to this line
@@ -959,30 +961,26 @@ def driver(ystart, t1, t2):
 
                 kount = kount + 1
             if hitJupiter:
-                print('Simulation stopped because the particle hit Jupiter')
-                print('')
+                escape_msg = 'Simulation stopped because the particle hit Jupiter'
             elif hitMoon or traverseMoon:
-                print('Simulation stopped because the particle hit a moon')
-                print('')
+                escape_msg = 'Simulation stopped because the particle hit a moon'
             elif outsideHill:
-                print('Simulation stopped because the particle escaped the Hill sphere')
-                print('')
-            return tp, yp, accp, orbitp, kount, nok, nbad # normal exit
+                escape_msg = 'Simulation stopped because the particle escaped the Hill sphere'
+            return tp, yp, accp, orbitp, kount, nok, nbad, escape_msg # normal exit
         #if abs(hnext) <= hmin :
         #    print('Step size too small in driver routine')
         h = hnext
 
     print('Maximum number of iterations reached in driver routine : returning results')
-    return tp, yp, accp, orbitp, kount, nok, nbad  # Exit after maximum number of iterations reached
-
+    return tp, yp, accp, orbitp, kount, nok, nbad, escape_msg  # Exit after maximum number of iterations reached
 
 
 
 # plot figures in Jupiter body-fixed frame
-def plot_figs(yps, tps, accps, orbitps, kounts, t1, row, particleID):
-    print('Plotting...')
+def plot_figs(yps, tps, accps, orbitps, kounts, t1, row, particleID, script_ID):
+    #print('Plotting...')
 
-    os.makedirs('Figures/')
+    #os.makedirs('Figures/')
 
     ## Converting position and velocity of particle from IAU_JUPITER to JIF
     yps_inert = np.zeros((5, 6, itermax, row))  # initialization
@@ -1059,7 +1057,7 @@ def plot_figs(yps, tps, accps, orbitps, kounts, t1, row, particleID):
     axes.set_zlabel('Z-axis [km]')
     axes.set_label('3D plot of trajectory (INERTIAL FRAME)')
     axes.set_aspect('equal', 'datalim')
-    fig1.savefig('Figures/traj_3d_inertial.png')
+    fig1.savefig('Figures/traj_3d_inertial_script_' + str(script_ID) + '.png')
 
     ## 3D plot of trajectory (ROTATING)
     # fig2 = plt.figure(2)
@@ -1154,7 +1152,7 @@ def plot_figs(yps, tps, accps, orbitps, kounts, t1, row, particleID):
     plt.xlabel('X-axis [km]')
     plt.ylabel('Y-axis [km]')
     plt.axes().set_aspect('equal', 'datalim')
-    fig4.savefig('Figures/traj_xy_inertial.png')
+    fig4.savefig('Figures/traj_xy_inertial_script_' + str(script_ID) + '.png')
 
 
     ## Projection of trajectory on X-Z plane (INERTIAL)
@@ -1192,7 +1190,7 @@ def plot_figs(yps, tps, accps, orbitps, kounts, t1, row, particleID):
     plt.ylabel('Z-axis [km]')
     plt.title('Projection of trajectory on X-Z plane (INERTIAL FRAME)')
     plt.axes().set_aspect('equal', 'datalim')
-    fig7.savefig('Figures/traj_xz_inertial.png')
+    fig7.savefig('Figures/traj_xz_inertial_script_' + str(script_ID) + '.png')
 
     ## Projection of trajectory on Y-Z plane (INERTIAL)
     fig8 = plt.figure(8)
@@ -1229,7 +1227,7 @@ def plot_figs(yps, tps, accps, orbitps, kounts, t1, row, particleID):
     plt.ylabel('Z-axis [km]')
     plt.title('Projection of trajectory on Y-Z plane (INERTIAL FRAME)')
     plt.axes().set_aspect('equal', 'datalim')
-    fig8.savefig('Figures/traj_yz_inertial.png')
+    fig8.savefig('Figures/traj_yz_inertial_script_' + str(script_ID) + '.png')
 
     # ## Projection of trajectory on X-Z plane (ROTATING)
     # fig9 = plt.figure(9)
@@ -1291,7 +1289,7 @@ def plot_figs(yps, tps, accps, orbitps, kounts, t1, row, particleID):
     plt.xlabel('Time [hours]')
     plt.ylabel('Energy [J]')
     plt.title('Energy of particle')
-    fig5.savefig('Figures/energy.png')
+    fig5.savefig('Figures/energy_script_' + str(script_ID) + '.png')
 
 
     ## Plot of accelerations due to different forces as a function of time
@@ -1313,7 +1311,7 @@ def plot_figs(yps, tps, accps, orbitps, kounts, t1, row, particleID):
     plt.xlabel('Time [hours]')
     plt.ylabel('Acceleration [km/s^2]')
     plt.title('Different accelerations on the particle')
-    fig6.savefig('Figures/accelerations.png')
+    fig6.savefig('Figures/accelerations_script_' + str(script_ID) + '.png')
 
     ## plot of semi-major axis
     fig11 = plt.figure(11)
@@ -1321,7 +1319,7 @@ def plot_figs(yps, tps, accps, orbitps, kounts, t1, row, particleID):
     plt.xlabel('Time [hours]')
     plt.ylabel('semi-major axis of particle [km]')
     plt.title('Semi-major axis of particle')
-    fig11.savefig('Figures/semi_major_axis_vs_time.png')
+    fig11.savefig('Figures/semi_major_axis_vs_time_script_' + str(script_ID) + '.png')
 
     ## plot of inclination of trajectory
     fig12 = plt.figure(12)
@@ -1329,7 +1327,7 @@ def plot_figs(yps, tps, accps, orbitps, kounts, t1, row, particleID):
     plt.xlabel('Time [hours]')
     plt.ylabel('Inclination of trajectory of particle [radians]')
     plt.title('Inclination of trajectory of particle ')
-    fig12.savefig('Figures/inclination_vs_time.png')
+    fig12.savefig('Figures/inclination_vs_time_script_' + str(script_ID) + '.png')
 
     ## plot of the three components for a given acceleration vector as a function of distanc
     # distance_sorted = sorted(distance)
@@ -1419,7 +1417,7 @@ def load_initial_conditions(ic_file):
     return y0_particles, ystart
 
 
-def simulate(y0_particles, ystart):
+def simulate(y0_particles, ystart, script_ID, job_ID):
     tps = np.zeros((num_particles, itermax))
     yps = np.zeros((5, 6, itermax, num_particles))
     accps = np.zeros((8, 3, itermax, num_particles))
@@ -1430,10 +1428,11 @@ def simulate(y0_particles, ystart):
     t_start = time()
     for i in range(num_particles):
         ystart[0, :] = y0_particles[i, :]  # initial condition for one particle
-        tp, yp, accp, orbitp, kount, nok, nbad = driver(ystart, t1, t2)  # trajectory of one particle
+        tp, yp, accp, orbitp, kount, nok, nbad, escape_msg = driver(ystart, t1, t2)  # trajectory of one particle
         print('')
-        print('-- Trajectory of particle %d calculated' % (i + 1))
+        print('-- Trajectory of particle ' + str(i+1) + ' calculated (' + str(script_ID) + '.' + str(job_ID) + ')')
         print('Actual duration of simulation : %f days' % ((tp[kount - 1] - t1) / (24 * 3600)))
+        print(escape_msg)
         tps[i, :] = tp
         yps[:, :, :, i] = yp
         accps[:, :, :, i] = accp
@@ -1442,8 +1441,7 @@ def simulate(y0_particles, ystart):
     t_end = time()
     kounts = kounts.astype(int)
 
-    print('')
-    print('Real time of whole simulation : %f minutes' % ((t_end - t_start) / 60))
+    print('Real time of simulation ' + str(script_ID) + '.' + str(job_ID) + ' : ' + str((t_end - t_start) / 60) + ' minutes')
     return yps, tps, accps, orbitps, kounts
 
 
@@ -1471,58 +1469,62 @@ def save_outputs(yps, tps, accps, orbitps, kounts, job_ID, script_ID):
 
 
 if __name__ == "__main__":
-    print('')
-    print('Initializing simulation...')
-
     ## GLOBAL CONSTANTS
     global job_ID, num_particles, metakernel, integrator, frame, traj_flag, origin, tiny, hill_radius, G, m1, m_sun, mu, mu_sun, Rj, a, AU, d, w_sun, w_jup, J2, B_magn, epsilon0, Sdot, Ls, Sdot, c, mass_moons, m_dust, r_dust, beta, density, itermax, kmax, h1, hmin, dtsav, eps, exp_shrink, exp_grow, S, errcon, B, g, h, degree, abs_logN0, ord_logN0, abs_logkT, ord_logkT, N0, r0, alpha, l0, gk, E0, E1, ratio, mh, kmaxx, imax, S1, S2, redmax, redmin, scalmx, radius_moons
     particle_ID = 0
 
     ## ARGUMENTS FROM COMMAND LINE
     args = sys.argv # arguments from the command line
-    parameters_filename = args[1]
-    ic_file = args[2]
+    #parameters_filename = args[1]
+    ic_file = args[1]
 
     try:
-        num_particles = int(args[3])
+        num_particles = int(args[2])
     except ValueError:
-        ic_file = args[2]
         file = open(ic_file,'r')  # file contains initial positions and velocities of particles in IAU_JUPITER frame at time t1
         lines = file.readlines()  # array of lines (each line represents a particle)
         file.close()
         num_particles = np.size(lines)
 
-    #num_particles = int(args[3]) # number of particles to be simulated
-    job_ID = int(args[4])
-    script_ID = int(args[5])
+    job_ID = int(args[3])
+    script_ID = int(args[4])
+    if args[5] == 'solo':
+        solo = True
+    elif args[5] == 'multi':
+        solo = False
 
-    from model_parameters_jupiter import * ## importlib.import_module(filename)
+    print('')
+    print('Initializing simulation from script ' + str(script_ID) + ' and job ' + str(job_ID) + ' ...')
+
+    #__import__(parameters_filename)
+    from model_parameters_jupiter import *
     spice.furnsh(metakernel)
 
     y0_particles, ystart = load_initial_conditions(ic_file)
 
-    print('Model parameters and initial conditions of particles loaded')
+    #print('Model parameters and initial conditions of particles loaded')
 
     ## SIMULATION
     #pr = cProfile.Profile()  # profiler
     #pr.enable()
-    yps, tps, accps, orbitps, kounts = simulate(y0_particles, ystart)
+    yps, tps, accps, orbitps, kounts = simulate(y0_particles, ystart, script_ID, job_ID)
     #pr.disable()
+    print('Simulation ' + str(script_ID) + '.' + str(job_ID) + ' done')
+
 
     ## save results of simulation
     save_outputs(yps, tps, accps, orbitps, kounts, job_ID, script_ID)
     print('')
-    print('Results of simulation saved')
+    print('Results of simulation ' + str(script_ID) + '.' + str(job_ID) + ' saved')
 
-    ## plot and save figures
-    plot_figs(yps, tps, accps, orbitps, kounts, t1, num_particles, particleID)
-    print('Figures saved')
+    ## plot and save figures only if in solo mode
+    if solo == True:
+        plot_figs(yps, tps, accps, orbitps, kounts, t1, num_particles, particleID, script_ID)
+        print('Figures of simulation ' + str(script_ID) + '.' + str(job_ID) + ' saved')
 
     ## profiler
     #pr.dump_stats('profile_'+str(script_ID)+'_'+str(job_ID)+'.cprof')
     #print('Profiling saved')
-    print('DONE')
 
-# plot_figs(yps, tps, accps, orbitps, kounts, t1, row, particleID)  # plot trajectories of the particles
 
 
