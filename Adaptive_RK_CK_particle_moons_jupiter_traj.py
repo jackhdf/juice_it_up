@@ -16,6 +16,7 @@ import cProfile
 import sys
 import os
 import importlib
+import random
 
 
 
@@ -807,9 +808,9 @@ def hitMoons(y):
     for i in range(np.size(mass_moons)):
         distance = np.sqrt((y[0,0] - y[i+1,0])**2 + (y[0,1] - y[i+1,1])**2 + (y[0,2] - y[i+1,2])**2) # distance between particle and center of the moon
         if distance <= radius_moons[i]:
-            return True # particle hit the moon
+            return True, i # particle hit the moon
 
-    return False
+    return False, 0
 
 ## returns True if the particle has a trajectory that traverses a moon's surface
 ## we draw a straight line between the position y of the particle at time t  and the position of the particle for the previous iteration
@@ -856,13 +857,13 @@ def traverseMoons(yprev, ycurrent, t_prev, t_current):
             ytemp[3,:] = np.array(np.append(spice_GetPosition('GANYMEDE', origin, t[i]), spice_GetVelocity('GANYMEDE', origin, t[i])))
             ytemp[4,:] = np.array(np.append(spice_GetPosition('CALLISTO', origin, t[i]), spice_GetVelocity('CALLISTO', origin, t[i])))
 
-            bool = hitMoons(ytemp)
+            bool, whichMoon = hitMoons(ytemp)
             if bool == True:
-                return True # one of the endpoints of the segments is inside the radius of one of the moons
-        return False
+                return True, whichMoon # one of the endpoints of the segments is inside the radius of one of the moons
+        return False, 0
 
     else :
-        return False # the particle is too far away from any moon
+        return False, 0 # the particle is too far away from any moon
 
 
 # DRIVER ROUTINE : Runge-Kutta driver with adaptive stepsize control. Integrate starting values ystart[1..nvar] from x1 to x2 with accuracy eps
@@ -879,12 +880,14 @@ def traverseMoons(yprev, ycurrent, t_prev, t_current):
 # results are only stored at intervals greater than dxsav
 # t is not incremented in for loop because its value is determined at each output of the stepper routine
 
-def driver(ystart, t1, t2):
+def driver(ystart, t1, t2, particleID):
     t = t1
     tp = np.zeros((1,kmax))[0]
     yp = np.zeros((5,6,kmax))
     accp = np.zeros((8,3,kmax))
     orbitp = np.zeros((3,kmax))
+    impact = np.zeros((1, 4))
+    #transition = np.zeros((1,100))
     yscal = np.zeros((5,6))[0]
     hdid = hnext = 0 # initialized here for scope
 
@@ -896,6 +899,7 @@ def driver(ystart, t1, t2):
     nok = nbad = kount = 0
     y = ystart
     acc = np.zeros((8,3))
+    #transition[0,0] = whichZone(y)# initial zone in which the particle starts
 
     if kmax > 0: # if the maximum number of steps that can be stored is valid
         tsav = t - dtsav*2. # assures storage of first step
@@ -937,8 +941,8 @@ def driver(ystart, t1, t2):
             nbad = nbad + 1 # bad step was taken
 
         hitJupiter = sqrt(y[0,0]**2+y[0,1]**2+y[0,2]**2) <= Rj # True if the particle has hit Jupiter
-        hitMoon = hitMoons(y)
-        traverseMoon = traverseMoons(yp[:,:,kount-1], y, tp[kount-1], t)
+        hitMoon, whichMoon = hitMoons(y)
+        traverseMoon, whichMoon = traverseMoons(yp[:,:,kount-1], y, tp[kount-1], t)
         outsideHill = sqrt(y[0,0]**2+y[0,1]**2+y[0,2]**2) > hill_radius
         escape_msg = ''
 
@@ -953,27 +957,30 @@ def driver(ystart, t1, t2):
                 elts = spice.oscelt(state, t, mu)  # orbital elements
                 apoapsis = elts[0] / (1-elts[1]) # apoapsis distance = perifocal distance / (1-eccentricity)
                 semimaj = (elts[0] + apoapsis)/2
-                #v = sqrt(y[0, 3] ** 2 + y[0, 4] ** 2 + y[0, 5] ** 2)  # instantaneous speed
-                #dist = sqrt(y[0, 0] ** 2 + y[0, 1] ** 2 + y[0, 2] ** 2)  # dist from origin
-                #E = (v**2)/2 - mu/dist # specific orbital energy
-                #semimaj = - mu / (2*E) # semi-major axis
                 orbitp[:, kount] = np.array([semimaj, elts[2], elts[0]]) #np.array([elts[0], elts[2]])  # stores perifocal distance and inclination
+                #transition = whichZone(y)
 
                 kount = kount + 1
             if hitJupiter:
-                escape_msg = 'Simulation stopped because the particle hit Jupiter'
+                escape_msg = 'Simulation of this particle stopped because the particle hit Jupiter'
             elif hitMoon or traverseMoon:
-                escape_msg = 'Simulation stopped because the particle hit a moon'
+                escape_msg = 'Simulation of this particle stopped because the particle hit a moon'
+                y_inert = spice_rot2inert(y[0,:],t)
+                velocity = np.sqrt(y_inert[3]**2 + y_inert[4]**2 + y_inert[5]**2)
+                impact[:] = np.array([int(particleID), m_dust, velocity, int(whichMoon)])
             elif outsideHill:
-                escape_msg = 'Simulation stopped because the particle escaped the Hill sphere'
-            return tp, yp, accp, orbitp, kount, nok, nbad, escape_msg # normal exit
+                escape_msg = 'Simulation of this particle stopped because the particle escaped the Hill sphere'
+            return tp, yp, accp, orbitp, kount, nok, nbad, escape_msg, impact # normal exit
         #if abs(hnext) <= hmin :
         #    print('Step size too small in driver routine')
         h = hnext
 
     print('Maximum number of iterations reached in driver routine : returning results')
-    return tp, yp, accp, orbitp, kount, nok, nbad, escape_msg  # Exit after maximum number of iterations reached
+    return tp, yp, accp, orbitp, kount, nok, nbad, escape_msg, impact  # Exit after maximum number of iterations reached
 
+# determines in which zone is the particle
+# zone 1 is between Jupiter and Io, zone 2 between Io and Europa, etc
+#def whichZone(y):
 
 
 # plot figures in Jupiter body-fixed frame
@@ -1369,7 +1376,7 @@ def plot_figs(yps, tps, accps, orbitps, kounts, t1, row, particleID, script_ID):
     # plt.ylabel('Apocenter distance [km]')
     # plt.title('Apocenter distance')
 
-
+    #plt.show()
 
 
 
@@ -1379,6 +1386,7 @@ def load_initial_conditions(ic_file):
     ## read file of initial conditions for particles
     file = open(ic_file,'r')  # file contains initial positions and velocities of particles in IAU_JUPITER frame at time t1
     lines = file.readlines()  # array of lines (each line represents a particle)
+    total_num_particles = np.size(lines)
     file.close()
     column = np.size(lines[0].split())
     y0_particles = np.zeros((num_particles, 6))  # matrix of initial conditions for particles
@@ -1393,6 +1401,9 @@ def load_initial_conditions(ic_file):
     ystart[3, :] = np.array(np.append(spice_GetPosition('GANYMEDE', origin, t1), spice_GetVelocity('GANYMEDE', origin, t1)))  # initial state of Ganymede
     ystart[4, :] = np.array(np.append(spice_GetPosition('CALLISTO', origin, t1), spice_GetVelocity('CALLISTO', origin, t1)))  # initial state of Callisto
 
+    #print(ystart[1, :])
+    #print('')
+    #print(spice_rot2inert(ystart[1, :],t1))
     ## initial conditions in INERTIAL frame (to integrate in inertial frame (without centrifugal and coriolis force))
     # ystart[0,:] = np.concatenate((pos_inert, v_orb_inert)) # initial state vector for particle expressed in IAU_JUPITER frame (body-fixed)
     # ystart[1,:] = np.array(np.append(spice_GetPosition('IO', origin, t1), spice_GetVelocity('IO', origin, t1))) # initial state of Io
@@ -1401,10 +1412,17 @@ def load_initial_conditions(ic_file):
     # ystart[3,:] = np.array(np.append(spice_GetPosition('GANYMEDE', origin, t1), spice_GetVelocity('GANYMEDE', origin, t1))) # initial state of Ganymede
     # ystart[4,:] = np.array(np.append(spice_GetPosition('CALLISTO', origin, t1), spice_GetVelocity('CALLISTO', origin, t1))) # initial state of Callisto
 
+    if total_num_particles > 1: # to avoid ValueError
+        indices = random.sample(range(total_num_particles - 1), num_particles) # indices for sampling randomly without repetition in the file of initial conditions
+    else:
+        indices = random.sample(range(total_num_particles), num_particles) # indices for sampling randomly without repetition in the file of initial conditions
+
     ## determine initial conditions of particles
     for i in range(num_particles):
         data = np.zeros((column))  # initialize
-        str_list = lines[i].split()  # splits the 7 numbers of a line into a list of strings
+        #str_list = lines[i].split()  # splits the 7 numbers of a line into a list of strings
+        str_list = lines[indices[i]].split() # random sampling
+
         for j in range(column):
             data[j] = float(str_list[j])  # makes an array with the 7 values
         pos_inert = data[1:4]  # we suppose that all particles are emitted at the center of a given moon
@@ -1423,12 +1441,14 @@ def simulate(y0_particles, ystart, script_ID, job_ID):
     accps = np.zeros((8, 3, itermax, num_particles))
     orbitps = np.zeros((3, itermax, num_particles))
     kounts = np.zeros((num_particles))
+    impacts = np.zeros((1,4)) # particleID | mass | impact velocity in inertial frame | which moon (we append progressively all the particles that hit moons)
+    #transitions = np.zeros((num_particles,100)) # we only save the 100 first transitions between orbits for a given particle
 
     # loop over all particles
     t_start = time()
     for i in range(num_particles):
         ystart[0, :] = y0_particles[i, :]  # initial condition for one particle
-        tp, yp, accp, orbitp, kount, nok, nbad, escape_msg = driver(ystart, t1, t2)  # trajectory of one particle
+        tp, yp, accp, orbitp, kount, nok, nbad, escape_msg, impact = driver(ystart, t1, t2, i)  # trajectory of one particle
         print('')
         print('-- Trajectory of particle ' + str(i+1) + ' calculated (' + str(script_ID) + '.' + str(job_ID) + ')')
         print('Actual duration of simulation : %f days' % ((tp[kount - 1] - t1) / (24 * 3600)))
@@ -1438,21 +1458,27 @@ def simulate(y0_particles, ystart, script_ID, job_ID):
         accps[:, :, :, i] = accp
         orbitps[:, :, i] = orbitp
         kounts[i] = kount
+        if impact.any() != 0:
+            impacts = np.concatenate((impacts,impact),axis=0)
+        #transitions[i,:] = transition
     t_end = time()
     kounts = kounts.astype(int)
 
     print('Real time of simulation ' + str(script_ID) + '.' + str(job_ID) + ' : ' + str((t_end - t_start) / 60) + ' minutes')
-    return yps, tps, accps, orbitps, kounts
+    return yps, tps, accps, orbitps, kounts, impacts#, transitions
 
 
-def save_outputs(yps, tps, accps, orbitps, kounts, job_ID, script_ID):
+def save_outputs(yps, tps, accps, orbitps, kounts, impacts, job_ID, script_ID):
     np.save('output_state_'+str(script_ID)+'_'+str(job_ID), yps)
     np.save('output_time_'+str(script_ID)+'_'+str(job_ID), tps)
     np.save('output_acc_'+str(script_ID)+'_'+str(job_ID), accps)
     np.save('output_orbitelem_'+str(script_ID)+'_'+str(job_ID), orbitps)
     np.save('output_kounts_'+str(script_ID)+'_'+str(job_ID), kounts)
+    np.save('output_impacts_'+str(script_ID)+'_'+str(job_ID), impacts)
+    #np.save('output_transitions_'+str(script_ID)+'_'+str(job_ID), transitions)
 
-
+    #print(impacts)
+    #print(transitions)
 
 
 
@@ -1470,7 +1496,7 @@ def save_outputs(yps, tps, accps, orbitps, kounts, job_ID, script_ID):
 
 if __name__ == "__main__":
     ## GLOBAL CONSTANTS
-    global job_ID, num_particles, metakernel, integrator, frame, traj_flag, origin, tiny, hill_radius, G, m1, m_sun, mu, mu_sun, Rj, a, AU, d, w_sun, w_jup, J2, B_magn, epsilon0, Sdot, Ls, Sdot, c, mass_moons, m_dust, r_dust, beta, density, itermax, kmax, h1, hmin, dtsav, eps, exp_shrink, exp_grow, S, errcon, B, g, h, degree, abs_logN0, ord_logN0, abs_logkT, ord_logkT, N0, r0, alpha, l0, gk, E0, E1, ratio, mh, kmaxx, imax, S1, S2, redmax, redmin, scalmx, radius_moons
+    global job_ID, num_particles, metakernel, integrator, frame, traj_flag, origin, tiny, hill_radius, G, m1, m_sun, mu, mu_sun, Rj, a, AU, d, w_sun, w_jup, J2, B_magn, epsilon0, Sdot, Ls, Sdot, c, mass_moons, m_dust, r_dust, beta, density, itermax, kmax, h1, hmin, dtsav, eps, exp_shrink, exp_grow, S, errcon, B, g, h, degree, abs_logN0, ord_logN0, abs_logkT, ord_logkT, N0, r0, alpha, l0, gk, E0, E1, ratio, mh, kmaxx, imax, S1, S2, redmax, redmin, scalmx, radius_moons, num_zones
     particle_ID = 0
 
     ## ARGUMENTS FROM COMMAND LINE
@@ -1507,13 +1533,13 @@ if __name__ == "__main__":
     ## SIMULATION
     #pr = cProfile.Profile()  # profiler
     #pr.enable()
-    yps, tps, accps, orbitps, kounts = simulate(y0_particles, ystart, script_ID, job_ID)
+    yps, tps, accps, orbitps, kounts, impacts = simulate(y0_particles, ystart, script_ID, job_ID)
     #pr.disable()
     print('Simulation ' + str(script_ID) + '.' + str(job_ID) + ' done')
 
 
     ## save results of simulation
-    save_outputs(yps, tps, accps, orbitps, kounts, job_ID, script_ID)
+    save_outputs(yps, tps, accps, orbitps, kounts, impacts, job_ID, script_ID)
     print('')
     print('Results of simulation ' + str(script_ID) + '.' + str(job_ID) + ' saved')
 
@@ -1526,5 +1552,5 @@ if __name__ == "__main__":
     #pr.dump_stats('profile_'+str(script_ID)+'_'+str(job_ID)+'.cprof')
     #print('Profiling saved')
 
-
+    sys.exit(-1)
 

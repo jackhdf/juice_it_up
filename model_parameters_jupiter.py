@@ -7,9 +7,9 @@ import numpy as np
 
 
 ## USER PARAMETERS
-duration = 100*24*3600 # duration of the simulation in real time [s]
+duration = 1*24*3600 # duration of the simulation in real time [s]
 traj_flag = False  # if this flag is True then the trajectories of the particles are plotted in blue
-itermax = 10000000 # max number of iterations (increase if increase of the simulation time)
+itermax = 10000 # max number of iterations (increase if increase of the simulation time)
 particleID = 0  # ID of the particle for which to show energy and acceleration plots
 
 ## INTEGRATOR PARAMETERS
@@ -21,9 +21,9 @@ metakernel = 'text_files/Traj_juice_141a_generic_cfg.txt' # metakernel file name
 spice.furnsh(metakernel)
 
 ## TIME PARAMETERS
-t_init = '2016-01-01T00:00:01.816092' # time in Julian calendar
-t_init_et = spice.str2et(t_init) # ephemeris time : number of seconds past the J2000 epoch
-t1 = t_init_et # initial time [s]
+#t_init = '2016-01-01T00:00:01.816092' # time in Julian calendar
+#t1 = spice.str2et(t_init) # ephemeris time : number of seconds past the J2000 epoch: initial time [s]
+t1 = 5.3131687e+08
 t2 = t1 + duration # final ephemeris time [s]
 
 ## MODEL PARAMETERS
@@ -49,12 +49,13 @@ Ls = 4 * pi * (d ** 2) * Sdot  # solar luminosity [microWatt = kg*km^2/s^3] at a
 c = 299792.458  # speed of light [km/s]
 mass_moons = np.array([8.9319e22, 4.8e22, 1.4819e23, 1.0759e23])  # mass of four galilean moons in the same order as below [kg]
 radius_moons = np.array([1830., 1560.8, 2631.2, 2410.3])  # radius of the moons of Jupiter [km]
+num_zones = np.size(mass_moons) + 1  # number of zones
 r = 5*Rj # initial distance from Jupiter
 hill_radius = semimaj*(1-e)*(m_jup/(3*m_sun))**(1/3) # Hill radius of Jupiter [km]
 
 ## PARTICLE PARAMETERS
 r_dust = 1e-6  # radius of the particle [m]
-density = 2500  # kg/m^3
+density = 1000  # kg/m^3
 m_dust = (4. / 3) * (r_dust ** 3) * density  # [kg]
 beta = 2.278887e-02  # solar radiation pressure coefficient
 

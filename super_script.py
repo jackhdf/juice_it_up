@@ -45,34 +45,18 @@ if __name__ == "__main__":
     for job_ID in range(num_jobs):
         if job_ID < (num_jobs-1):
             print('Job ' + str(job_ID) + ' initialized')
-            command = 'python Adaptive_RK_CK_particle_moons_jupiter_traj.py ' + ic_file + ' ' + str(num_particles_per_job) + ' ' + str(job_ID) + ' ' + str(script_ID) + ' multi'
+            command = ['python', 'Adaptive_RK_CK_particle_moons_jupiter_traj.py', ic_file, str(num_particles_per_job), str(job_ID), str(script_ID), 'multi']
             proc[job_ID] = sp.Popen(command) #, shell = True, stdout = log, stderr = sp.PIPE)
         elif job_ID == (num_jobs-1):
             print('Job ' + str(job_ID) + ' initialized')
-            command = 'python Adaptive_RK_CK_particle_moons_jupiter_traj.py ' + ic_file + ' ' + str(num_particles_per_job-diff) + ' ' + str(job_ID) + ' ' + str(script_ID) + ' multi'
+            command = ['python', 'Adaptive_RK_CK_particle_moons_jupiter_traj.py', ic_file, str(num_particles_per_job-diff), str(job_ID), str(script_ID), 'multi']
             proc[job_ID] = sp.Popen(command) #, shell = True, stdout = log, stderr = sp.PIPE)
 
     for i in range(num_jobs):
         proc[i].wait()
     print('All jobs are done')
     os.system('python plot_figures.py ' + str(num_particles) + ' ' + str(num_jobs) + ' ' + str(script_ID) + ' ' + ic_file)
-
-    #exit_codes = [p.wait() for p in proc]
-    #print(exit_codes)
-
-    ## plot figures for the simulation containing the data from all the jobs
-    #print(proc)
-    # proc.wait() # checks that all subprocesses are finished
-    #for i in range(num_jobs):
-    #    proc[i].wait()
-
-    # bool = False
-    # for i in range(num_jobs):
-    #     if [p.wait() for p in proc] == 0:
-    #         bool = True
-    # print(bool)
-    # if bool:
-    #     os.system('python plot_figures.py ' + str(num_particles) + ' ' + str(num_jobs) + ' ' + str(script_ID) + ' ' + ic_file)
+    #os.system(['python', 'plot_figures.py', str(num_particles), str(num_jobs), str(script_ID), ic_file])
 
     print('')
     print('----------------------------')

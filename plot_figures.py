@@ -416,12 +416,14 @@ def plot_figs(yps, tps, accps, orbitps, kounts, t1, row, particleID, script_ID):
     # plt.xlabel('Time [hours]')
     # plt.ylabel('Apocenter distance [km]')
     # plt.title('Apocenter distance')
+
     plt.show()
     print('Figures from simulation ' + str(script_ID) + ' saved')
 
 
 
 if __name__ == "__main__":
+    print("Plotting...")
     from model_parameters_jupiter import *  ## importlib.import_module(filename)
     spice.furnsh(metakernel)
 
