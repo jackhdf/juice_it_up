@@ -7,9 +7,9 @@ import numpy as np
 
 
 ## USER PARAMETERS
-duration = 1*24*3600 # duration of the simulation in real time [s]
-traj_flag = False  # if this flag is True then the trajectories of the particles are plotted in blue
-itermax = 10000 # max number of iterations (increase if increase of the simulation time)
+duration = 0.5*24*3600 # duration of the simulation in real time [s]
+traj_flag = True  # if this flag is True then the trajectories of the particles are plotted in blue
+itermax = 100000 # max number of iterations (increase if increase of the simulation time)
 particleID = 0  # ID of the particle for which to show energy and acceleration plots
 
 ## INTEGRATOR PARAMETERS
@@ -17,8 +17,18 @@ integrator = 'rkck' # 'bs' for Burlisch-Stoer
 frame = 'IAU_JUPITER' # when integrating in body-fixed frame
 # frame = 'JUICE_JUPITER_IF_J2000' # when integrating in inertial frame (but then plots are not valid)
 origin = 'JUPITER' # origin of the system
-metakernel = 'text_files/Traj_juice_141a_generic_cfg.txt' # metakernel file name
+metakernel = 'text_files/Traj_juice_141a_generic_cfg_linux.txt' # metakernel file name
 spice.furnsh(metakernel)
+
+## FORCES TO BE APPLIED: 1 is applied, 0 is not applied
+# if all the following parameters are set to 0, then only primary gravity of Jupiter will be considered
+central_body_oblateness = 0
+sun_gravity = 0
+moon_gravity = [] #['CALLISTO', 'EUROPA', 'GANYMEDE', 'IO'] ## List with the names of the moons in order from Jupiter, to be taken into account (should be SPICE compatible names)
+sun_radiation_pressure = 0
+sun_pr_drag = 0
+lorentz = 0 # Here we will have to see how to trigger the use of the B field model and particle potential for Jupiter or Saturnbut for now we should be able to switch on or off this acceleration from the config file - the charge of the particle will be derived from the potential and density values
+plasma_drag = 0 # same comment than for Lorentz
 
 ## TIME PARAMETERS
 #t_init = '2016-01-01T00:00:01.816092' # time in Julian calendar
@@ -55,9 +65,11 @@ hill_radius = semimaj*(1-e)*(m_jup/(3*m_sun))**(1/3) # Hill radius of Jupiter [k
 
 ## PARTICLE PARAMETERS
 r_dust = 1e-6  # radius of the particle [m]
-density = 1000  # kg/m^3
+density = 1500  # kg/m^3
 m_dust = (4. / 3) * (r_dust ** 3) * density  # [kg]
 beta = 2.278887e-02  # solar radiation pressure coefficient
+particle_potential_fixed = 5 ## in V fixed value if not chosen as model dependent
+particle_potential_model_dependent = 0 ## if set to 1, we have to use a model for the potential (a table with the potential as function of the particle position in the system  TBC)
 
 ## PLASMA DRAG MODEL PARAMETERS
 # each row (5) contains values for a given distance from jupiter: |1.0|3.8|5.5|7.9|20|170| [Rj]. Coefficients (see article, table 6) for O+, O++, S+, S++, S+++, Na+ (rows are for different distances of the particle from Jupiter)
