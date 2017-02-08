@@ -1,5 +1,5 @@
 ## Plots figures
-## command line : python plot_figures.py 1000 10 0 text_files/Initial_Conditions_Callisto.txt
+## command line : python3 plot_figures.py 1000 10 0 text_files/Initial_Conditions_Callisto.txt
 ## this command plots 1000 particules that were simulated on 10 jobs using script_ID = 0
 # using the argument "all" instead of 1000 will plot all particles in the initial conditions file
 

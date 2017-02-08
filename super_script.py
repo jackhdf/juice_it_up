@@ -1,6 +1,6 @@
 ## Run this script to start several jobs
 ## If one wants to do a quick simulation, one can run Adaptive_RK_CK_particle_moons_jupiter_traj.py from the command line
-## command line : python super_script.py text_files/Initial_Conditions_Callisto.txt 1000 10 0
+## command line : python3 super_script.py text_files/Initial_Conditions_Callisto.txt 1000 10 0
 ## runs super_script.py with 1000 particles from Callisto using 10 jobs (with each 100 particles) script_ID = 0
 # using the argument "all" instead of 1000 will simulate all particles in the initial conditions file
 
@@ -45,17 +45,17 @@ if __name__ == "__main__":
     for job_ID in range(num_jobs):
         if job_ID < (num_jobs-1):
             print('Job ' + str(job_ID) + ' initialized')
-            command = ['python', 'Adaptive_RK_CK_particle_moons_jupiter_traj.py', ic_file, str(num_particles_per_job), str(job_ID), str(script_ID), 'multi']
+            command = ['python3', 'Adaptive_RK_CK_particle_moons_jupiter_traj.py', ic_file, str(num_particles_per_job), str(job_ID), str(script_ID), 'multi']
             proc[job_ID] = sp.Popen(command) #, shell = True, stdout = log, stderr = sp.PIPE)
         elif job_ID == (num_jobs-1):
             print('Job ' + str(job_ID) + ' initialized')
-            command = ['python', 'Adaptive_RK_CK_particle_moons_jupiter_traj.py', ic_file, str(num_particles_per_job-diff), str(job_ID), str(script_ID), 'multi']
+            command = ['python3', 'Adaptive_RK_CK_particle_moons_jupiter_traj.py', ic_file, str(num_particles_per_job-diff), str(job_ID), str(script_ID), 'multi']
             proc[job_ID] = sp.Popen(command) #, shell = True, stdout = log, stderr = sp.PIPE)
 
     for i in range(num_jobs):
         proc[i].wait()
     print('All jobs are done')
-    os.system('python plot_figures.py ' + str(num_particles) + ' ' + str(num_jobs) + ' ' + str(script_ID) + ' ' + ic_file)
+    os.system('python3 plot_figures.py ' + str(num_particles) + ' ' + str(num_jobs) + ' ' + str(script_ID) + ' ' + ic_file)
     #os.system(['python', 'plot_figures.py', str(num_particles), str(num_jobs), str(script_ID), ic_file])
 
     print('')
