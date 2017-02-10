@@ -7,10 +7,12 @@ import numpy as np
 
 
 ## USER PARAMETERS
-duration = 0.5*24*3600 # duration of the simulation in real time [s]
+duration = 20*24*3600 # duration of the simulation in real time [s]
 traj_flag = True  # if this flag is True then the trajectories of the particles are plotted in blue
 itermax = 100000 # max number of iterations (increase if increase of the simulation time)
 particleID = 0  # ID of the particle for which to show energy and acceleration plots
+shuffle_particles = 1 # if set to 1, the program will shuffle the particles that will be simulated from the initial conditions file. If set to 0, the program will simulate the particles in the order that they appear in the initial conditions file
+show_plots = 1 # 1 if we want to see the plots at the end of the simulation
 
 ## INTEGRATOR PARAMETERS
 integrator = 'rkck' # 'bs' for Burlisch-Stoer
@@ -22,18 +24,18 @@ spice.furnsh(metakernel)
 
 ## FORCES TO BE APPLIED: 1 is applied, 0 is not applied
 # if all the following parameters are set to 0, then only primary gravity of Jupiter will be considered
-central_body_oblateness = 0
-sun_gravity = 0
-moon_gravity = [] #['CALLISTO', 'EUROPA', 'GANYMEDE', 'IO'] ## List with the names of the moons in order from Jupiter, to be taken into account (should be SPICE compatible names)
-sun_radiation_pressure = 0
-sun_pr_drag = 0
-lorentz = 0 # Here we will have to see how to trigger the use of the B field model and particle potential for Jupiter or Saturnbut for now we should be able to switch on or off this acceleration from the config file - the charge of the particle will be derived from the potential and density values
-plasma_drag = 0 # same comment than for Lorentz
+central_body_oblateness = 1
+sun_gravity = 1
+moon_gravity = ['IO', 'EUROPA', 'GANYMEDE', 'CALLISTO'] ## List with the names of the moons IN ORDER OF INCREASING DISTANCE from Jupiter, to be taken into account (should be SPICE compatible names)
+sun_radiation_pressure = 1
+sun_pr_drag = 1
+lorentz = 1 # Here we will have to see how to trigger the use of the B field model and particle potential for Jupiter or Saturnbut for now we should be able to switch on or off this acceleration from the config file - the charge of the particle will be derived from the potential and density values
+plasma_drag = 1 # same comment than for Lorentz
 
 ## TIME PARAMETERS
 #t_init = '2016-01-01T00:00:01.816092' # time in Julian calendar
 #t1 = spice.str2et(t_init) # ephemeris time : number of seconds past the J2000 epoch: initial time [s]
-t1 = 5.3131687e+08
+t1 = 5.0487847e+08
 t2 = t1 + duration # final ephemeris time [s]
 
 ## MODEL PARAMETERS

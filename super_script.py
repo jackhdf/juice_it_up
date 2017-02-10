@@ -1,7 +1,7 @@
 ## Run this script to start several jobs
 ## If one wants to do a quick simulation, one can run Adaptive_RK_CK_particle_moons_jupiter_traj.py from the command line
-## command line : python3 super_script.py text_files/Initial_Conditions_Callisto.txt 1000 10 0
-## runs super_script.py with 1000 particles from Callisto using 10 jobs (with each 100 particles) script_ID = 0
+## If you want to run several jobs in parallel, type on the command line : python3 super_script.py text_files/Initial_Conditions_Callisto.txt 1000 10 0
+## runs super_script.py with 1000 particles from Callisto using 10 jobs (with each 100 particles) and script_ID = 0
 # using the argument "all" instead of 1000 will simulate all particles in the initial conditions file
 
 
