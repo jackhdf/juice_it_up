@@ -34,7 +34,7 @@ def spice_GetVelocity(id,origin,et): # the last three arguments are optional
     return state[3:]
 
 
-## uses SPICE to transform position and velocity contained in y from the the Jupiter Inertial Frame (JIF) to the IAU_JUPITER body-fixed frame
+## uses SPICE to transform position and velocity contained in y from the IAU_JUPITER body-fixed frame to the Jupiter Inertial Frame (JIF)
 def spice_rot2inert(y,t):
     frame_from = 'IAU_JUPITER'
     frame_to = 'JUICE_JUPITER_IF_J2000' # 'JUICE_JSM'
@@ -109,15 +109,16 @@ def srp(y,t):
 
     ## Compute closest distance between vect_sun_dust line and Jupiter ellipsoid
     radii = spice.bodvrd('JUPITER', "RADII", 3)[1]  # Get ellipsoid radii in body fixed reference frame (IAU_JUPITER) : Fetch from the kernel pool the double precision values of an item associated with a body.
-    direction = - vect_sun_dust / np.sqrt(vect_sun_dust[0] ** 2 + vect_sun_dust[1] ** 2 + vect_sun_dust[2] ** 2)  # Get nearest point on ellipsoid to the line defined by the particle-sun line
+    direction = - vect_sun_dust / np.sqrt(vect_sun_dust[0] ** 2 + vect_sun_dust[1] ** 2 + vect_sun_dust[2] ** 2) # direction of sun-dust vector
 
+    ## Get nearest point on ellipsoid to the line defined by the particle-sun line
     # vect_jupiter_dust defines the point from which we look at the sun along the direction 'dust-sun'
     # then we check whether the dust-sun line intersects Jupiter = check whether 'Jupiter is between the dust grain and the sun'
     p_near, dist = spice.npedln(radii[0], radii[1], radii[2], vect_jupiter_dust, direction)  # Find nearest point on a triaxial ellipsoid to a specified line and the distance from the ellipsoid to the line.
     # there is an error in the above line when vec_jupiter_dust is nan. it is nan because y becomes a nan vector (the values of position and velocity are too big because particle escapes the system)
 
-    if dist == 0: return 1 # in the sun
-    else: return 0 # in the shadow of Jupiter
+    if dist != 0: return 1 # in the sun
+    elif dist == 0: return 0 # in the shadow of Jupiter
 
 ## associated Legendre polynomials (normalized) which are used for the VIPAL model of the magnetic field
 # x = cos(theta) and n and m are order coefficients for the VIPAL model
@@ -184,17 +185,19 @@ def VIPAL_B(r, th, phi):
 
 ## returns the charge [Coulomb] of a particle (which depends on its size, mass and distance from Jupiter, NOT if it is in the sun or in the shadow of Jupiter)
 def fun_Q(y):
-    # data points from graph of potential as a function of distance from Jupiter
-    absc = np.array([1,2,3,4,5,6,7,8,9,10])
-    ord = np.array([1.1, 4.4, 6.5, 4.14, -8.77, 1.4, 1.4, 1.5, 1.7, 1.87])
 
-    dist = sqrt(y[0]**2 + y[1]**2 + y[2]**2) / Rj # [Rj]
-    index = np.abs(absc-dist).argmin() # index of the closest value in abs to dist
-    potential = ord[index]
+    if particle_potential_model_dependent == 1:
+        # data points from graph of potential as a function of distance from Jupiter
+        absc = np.array([1,2,3,4,5,6,7,8,9,10]) #[Rj]
+        ord = np.array([1.1, 4.4, 6.5, 4.14, -8.77, 1.4, 1.4, 1.5, 1.7, 1.87]) #[volts]
+        dist = sqrt(y[0]**2 + y[1]**2 + y[2]**2) / Rj # [Rj]
+        index = np.abs(absc-dist).argmin() # index of the closest value in abs to dist
+        potential = ord[index]
 
-    num_electrons = 700*potential*(r_dust*1e6) # number of electrons
-    charge = (1.60217662e-19)*num_electrons
-    #chargebis = 4*pi*epsilon0*r_dust*potential # more precise
+    elif particle_potential_model_dependent == 0:
+        potential = particle_potential_fixed
+
+    charge = 4*pi*epsilon0*r_dust*potential # more precise
     return charge
 
 
@@ -298,18 +301,38 @@ def acc_PRdrag(y,t,flag_srp):
 
 
 ## Lorentz force
-def acc_lorentz(y):
+def acc_lorentz(y,t):
     ## Constant magnetic field pointing towards the positive z-axis of IAU_JUPITER frame
     #W = np.array([0.,0.,w_jup]) # angular velocity vector
     #B = np.array([0.,0.,B_magn])# suppose a constant magnetic field parallele to z-axis in body-fixed frame
 
     ## VIPAL model of magnetic field
-    radius, colat, lon = spice.recsph(y[0:3])  # r is distance from origin, colat is angle from the positive z-axis, lon is longitude in radians (between -pi and pi) (ALL in rotating frame)
-    B = (4.2e-4)*VIPAL_B(radius, colat, lon)  # this function returns the vector of the magnetic field at position y [Tesla]
+    radius, colat, lon = spice.recsph(y[0:3])  # r is distance from origin, colat is angle from the positive z-axis, lon is longitude in radians (between -pi and pi) (ALL in rotating/body-fixed frame)
+    B = (1e-4)*VIPAL_B(radius, colat, lon)  # this function returns the vector of the magnetic field at position y [Tesla] (VIPAL expresses magnetic field in Gauss = 10-4 Tesla) (B is in rotating/body-fixed frame)
+
+    # conversion to JIF to calculate lorentz forces
+    B_JIF = spice_rot2inert(np.append(B, np.array([0., 0., 0.])), t)[0:3] # conversion (we do not have a velocity vector but no big deal)
+    y_JIF = spice_rot2inert(y,t)
+
+    #dist = np.sqrt(y[0]**2 + y[1]**2 + y[2]**2)
+    #B_JIF_mag = np.sqrt(B_JIF[0]**2 + B_JIF[1]**2 + B_JIF[2]**2)
+    #print(BB)
+    #BB = np.append(BB, np.array([dist, B_JIF_mag]), 0)
+    #print(dist/Rj)
+    #print(B_JIF_mag)
+    #print(' ')
+    #ax.scatter(dist,B_JIF_mag)
 
     # calculation of Lorentz acceleration (equation in Liu has the vector r in inertial frame)
     Q = fun_Q(y)
-    lo = (Q/m_dust) * (np.cross(y[3:], B))
+
+    # print(Q)
+    # print(np.sqrt(B[0]**2 + B[1]**2 + B[2]**2))
+    # print(' ')
+
+    lo_magnetic = (Q/m_dust) * np.cross(y_JIF[3:], B_JIF)
+    lo_electric = (-Q/m_dust) * np.cross(np.cross(np.array([0., 0., w_jup]), y_JIF[0:3]), B_JIF)
+    lo = lo_electric + lo_magnetic
 
     return lo
 
@@ -336,9 +359,8 @@ def acc_grav_sun(y,t, flag_srp):
 
 ## acceleration of the particle due to Jupiter
 def acc_grav_primary(y):
-    norm_r2 = np.sqrt(y[0] ** 2 + y[1] ** 2 + y[2] ** 2)
-    direction = - y[0:3] / norm_r2
-    acc = (mu / (norm_r2**2)) * direction
+    norm_dist = np.sqrt(y[0] ** 2 + y[1] ** 2 + y[2] ** 2)
+    acc = (-mu / (norm_dist**3)) * y[0:3]
 
     return acc
 
@@ -416,7 +438,7 @@ def f(t, y, moon_flag):
         if sun_pr_drag == 1:
             apr = acc_PRdrag(y[0, :], t, flag_srp)
         if lorentz == 1:
-            alo = acc_lorentz(y[0, :])
+            alo = acc_lorentz(y[0, :], t)
         if plasma_drag == 1:
             apd = acc_PDdrag(y[0,:])
 
@@ -862,8 +884,8 @@ def traverseMoons(yprev, ycurrent, t_prev, t_current):
         distances_current[i] = np.sqrt((ycurrent[0, 0] - ycurrent[i + 1, 0]) ** 2 + (ycurrent[0, 1] - ycurrent[i + 1, 1]) ** 2 + (ycurrent[0, 2] - ycurrent[i + 1, 2]) ** 2)  # distance between particle and center of the moon
 
     if (distances_prev < distance_from_any_moon).any() or (distances_current < distance_from_any_moon).any() : # the particle is too close to at least one moon at either the previous iteration or the current iteration
-        print('')
-        print('Approaching a moon...')
+        #print('')
+        #print('Approaching a moon...')
         delta_x = pos_current[0] - pos_prev[0] # positive if particle is advancing towards positive x ; negative otherwise
         delta_y = pos_current[1] - pos_prev[1]
         delta_z = pos_current[2] - pos_prev[2]
@@ -1008,7 +1030,7 @@ def driver(ystart, t1, t2, particleID):
         h = hnext
 
     print('Maximum number of iterations reached in driver routine : returning results')
-    return tp, yp, accp, orbitp, kount, nok, nbad, escape_msg, impact  # Exit after maximum number of iterations reached
+    return tp, yp, accp, orbitp, kount, nok, nbad, escape_msg, impact, B  # Exit after maximum number of iterations reached
 
 # determines in which zone is the particle
 # zone 1 is between Jupiter and Io, zone 2 between Io and Europa, etc
@@ -1385,21 +1407,34 @@ def plot_figs(yps, tps, accps, orbitps, kounts, t1, row, particleID, script_ID):
     plt.title('Different accelerations on the particle')
     fig6.savefig('Figures/accelerations_script_' + str(script_ID) + '.png')
 
-    # ## plot of semi-major axis
-    # fig11 = plt.figure(11)
-    # plt.plot((tps[particleID, 0:kounts[particleID]] - t1) / 3600, orbitps[0, 0:kounts[particleID], particleID])
-    # plt.xlabel('Time [hours]')
-    # plt.ylabel('semi-major axis of particle [km]')
-    # plt.title('Semi-major axis of particle')
-    # fig11.savefig('Figures/semi_major_axis_vs_time_script_' + str(script_ID) + '.png')
-    #
-    # ## plot of inclination of trajectory
-    # fig12 = plt.figure(12)
-    # plt.plot((tps[particleID, 0:kounts[particleID]] - t1) / 3600, orbitps[1, 0:kounts[particleID], particleID])
-    # plt.xlabel('Time [hours]')
-    # plt.ylabel('Inclination of trajectory of particle [radians]')
-    # plt.title('Inclination of trajectory of particle ')
-    # fig12.savefig('Figures/inclination_vs_time_script_' + str(script_ID) + '.png')
+    ## plot of semi-major axis
+    fig11 = plt.figure(11)
+    for i in range(num_particles):
+        plt.plot((tps[i, 0:kounts[i]] - t1) / 3600, orbitps[0, 0:kounts[i], i])
+    #plt.plot((tps[particleID, 0:kounts[particleID]] - t1) / 3600, orbitps[0, 0:kounts[particleID], particleID])
+    plt.xlabel('Time [hours]')
+    plt.ylabel('semi-major axis of particle [km]')
+    plt.title('Semi-major axis of particle')
+    fig11.savefig('Figures/semi_major_axis_vs_time_script_' + str(script_ID) + '.png')
+
+    ## plot of inclination of trajectory
+    fig12 = plt.figure(12)
+    for i in range(num_particles):
+        plt.plot((tps[i, 0:kounts[i]] - t1) / 3600, (orbitps[2, 0:kounts[i], i]/(2*pi))*360)
+    #plt.plot((tps[particleID, 0:kounts[particleID]] - t1) / 3600, orbitps[1, 0:kounts[particleID], particleID])    plt.xlabel('Time [hours]')
+    plt.ylabel('Inclination of trajectory of particle [degrees]')
+    plt.xlabel('Time [hours]')
+    plt.title('Inclination of trajectory of particle ')
+    fig12.savefig('Figures/inclination_vs_time_script_' + str(script_ID) + '.png')
+
+    ## plot of eccentricity
+    fig11 = plt.figure(13)
+    for i in range(num_particles):
+        plt.plot((tps[i, 0:kounts[i]] - t1) / 3600, orbitps[1, 0:kounts[i], i])
+    plt.xlabel('Time [hours]')
+    plt.ylabel('eccentricity of particle')
+    plt.title('Eccentricity of particle')
+    fig11.savefig('Figures/eccentricity_vs_time_script_' + str(script_ID) + '.png')
 
     ## plot of the three components for a given acceleration vector as a function of distanc
     # distance_sorted = sorted(distance)
@@ -1478,10 +1513,13 @@ def load_initial_conditions(ic_file):
     # ystart[3,:] = np.array(np.append(spice_GetPosition('GANYMEDE', origin, t1), spice_GetVelocity('GANYMEDE', origin, t1))) # initial state of Ganymede
     # ystart[4,:] = np.array(np.append(spice_GetPosition('CALLISTO', origin, t1), spice_GetVelocity('CALLISTO', origin, t1))) # initial state of Callisto
 
-    if total_num_particles > 1: # to avoid ValueError
-        indices = random.sample(range(total_num_particles - 1), num_particles) # indices for sampling randomly without repetition in the file of initial conditions
-    else:
-        indices = random.sample(range(total_num_particles), num_particles) # indices for sampling randomly without repetition in the file of initial conditions
+    if shuffle_particles == 1:
+        if total_num_particles > 1: # to avoid ValueError
+            indices = random.sample(range(total_num_particles - 1), num_particles) # indices for sampling randomly without repetition in the file of initial conditions
+        else:
+            indices = random.sample(range(total_num_particles), num_particles) # indices for sampling randomly without repetition in the file of initial conditions
+    elif shuffle_particles == 0:
+            indices = list(range(0, num_particles)) # selects the num_particles first particles in the file
 
     ## determine initial conditions of particles
     for i in range(num_particles):
@@ -1491,8 +1529,12 @@ def load_initial_conditions(ic_file):
 
         for j in range(column):
             data[j] = float(str_list[j])  # makes an array with the 7 values
-        pos_inert = data[1:4]  # we suppose that all particles are emitted at the center of a given moon
         v_orb_inert = data[4:]
+
+        #print(np.sqrt(v_orb_inert[0]**2 + v_orb_inert[1]**2 + v_orb_inert[2]**2))
+        #v_direction = v_orb_inert / np.sqrt(v_orb_inert[0]**2 + v_orb_inert[1]**2 + v_orb_inert[2]**2) # direction of velocity vector
+
+        pos_inert = data[1:4]  # we suppose that all particles are emitted at the center of a given moon
 
         W = np.array([0., 0., w_jup])  # angular velocity vector
         v_orb_rot = spice_inert2rot(np.append(pos_inert, v_orb_inert), t1)[3:] #
@@ -1510,6 +1552,7 @@ def load_initial_conditions(ic_file):
 
 
 def simulate(y0_particles, ystart, script_ID, job_ID):
+
     tps = np.zeros((num_particles, itermax))
     yps = np.zeros((5, 6, itermax, num_particles))
     accps = np.zeros((8, 3, itermax, num_particles))
@@ -1537,6 +1580,11 @@ def simulate(y0_particles, ystart, script_ID, job_ID):
         #transitions[i,:] = transition
     t_end = time()
     kounts = kounts.astype(int)
+
+    # print(BB)
+    # fig0 = plt.figure()
+    # plt.scatter(BB[0,:], BB[1,:])
+    # plt.show()
 
     print('Real time of simulation ' + str(script_ID) + '.' + str(job_ID) + ' : ' + str((t_end - t_start) / 60) + ' minutes')
     return yps, tps, accps, orbitps, kounts, impacts#, transitions
@@ -1570,7 +1618,8 @@ def save_outputs(yps, tps, accps, orbitps, kounts, impacts, job_ID, script_ID):
 
 if __name__ == "__main__":
     ## GLOBAL CONSTANTS
-    global job_ID, num_particles, metakernel, integrator, frame, traj_flag, origin, tiny, hill_radius, G, m1, m_sun, mu, mu_sun, Rj, a, AU, d, w_sun, w_jup, J2, B_magn, epsilon0, Sdot, Ls, Sdot, c, mass_moons, m_dust, r_dust, beta, density, itermax, kmax, h1, hmin, dtsav, eps, exp_shrink, exp_grow, S, errcon, B, g, h, degree, abs_logN0, ord_logN0, abs_logkT, ord_logkT, N0, r0, alpha, l0, gk, E0, E1, ratio, mh, kmaxx, imax, S1, S2, redmax, redmin, scalmx, radius_moons, num_zones, central_body_oblateness, sun_gravity, moon_gravity, sun_radiation_pressure, sun_pr_drag, lorentz, plasma_drag
+    global job_ID, num_particles, metakernel, integrator, frame, traj_flag, origin, tiny, hill_radius, G, m1, m_sun, mu, mu_sun, Rj, a, AU, d, w_sun, w_jup, J2, B_magn, epsilon0, Sdot, Ls, Sdot, c, mass_moons, m_dust, r_dust, beta, density, itermax, kmax, h1, hmin, dtsav, eps, exp_shrink, exp_grow, S, errcon, B, g, h, degree, abs_logN0, ord_logN0, abs_logkT, ord_logkT, N0, r0, alpha, l0, gk, E0, E1, ratio, mh, kmaxx, imax, S1, S2, redmax, redmin, scalmx, radius_moons, num_zones, central_body_oblateness, sun_gravity, moon_gravity, sun_radiation_pressure, sun_pr_drag, lorentz, plasma_drag, BB
+
 
     ## ARGUMENTS FROM COMMAND LINE
     args = sys.argv # arguments from the command line

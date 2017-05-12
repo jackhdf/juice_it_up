@@ -7,7 +7,7 @@ import numpy as np
 
 
 ## USER PARAMETERS
-duration = 20*24*3600 # duration of the simulation in real time [s]
+duration = 1*24*3600 # duration of the simulation in real time [s]
 traj_flag = True  # if this flag is True then the trajectories of the particles are plotted in blue
 itermax = 100000 # max number of iterations (increase if increase of the simulation time)
 particleID = 0  # ID of the particle for which to show energy and acceleration plots
@@ -35,7 +35,7 @@ plasma_drag = 1 # same comment than for Lorentz
 ## TIME PARAMETERS
 #t_init = '2016-01-01T00:00:01.816092' # time in Julian calendar
 #t1 = spice.str2et(t_init) # ephemeris time : number of seconds past the J2000 epoch: initial time [s]
-t1 = 5.0487847e+08
+t1 = 5.4444967e+08 + (1769*24*3600)/2 # other initial time: 5.0487847e+08
 t2 = t1 + duration # final ephemeris time [s]
 
 ## MODEL PARAMETERS
@@ -43,7 +43,7 @@ tiny = 1e-30
 G = 6.67384e-20  # gravitational constant [km^3 * kg^-1 * s^-2]
 m_jup = 1.8986e27  # mass of Jupiter [kg]
 m_sun = 1.9891e30  # mass of sun [kg]
-mu = G * m_jup
+mu = G * m_jup # km^3 s^-2
 mu_sun = G * m_sun
 Rj = 71492.  # radius of Jupiter [km]
 a = 71492  # equatorial radius of Jupiter [km]
@@ -60,16 +60,22 @@ Sdot = 1361  # average total solar irradiance at 1 AU [Watt/m^2]
 Ls = 4 * pi * (d ** 2) * Sdot  # solar luminosity [microWatt = kg*km^2/s^3] at a distance of 5 AU from the Sun (initially solar luminosity is in W/m^2, so we multiply this value by the surface of a sphere defined by a radius of 5 AU)
 c = 299792.458  # speed of light [km/s]
 mass_moons = np.array([8.9319e22, 4.8e22, 1.4819e23, 1.0759e23])  # mass of four galilean moons in the same order as below [kg]
-radius_moons = np.array([1830., 1560.8, 2631.2, 2410.3])  # radius of the moons of Jupiter [km]
+radius_moons = np.array([1830., 1560.8, 2631.2, 2409.4])  # radius of the moons of Jupiter [km]
 num_zones = np.size(mass_moons) + 1  # number of zones
 r = 5*Rj # initial distance from Jupiter
 hill_radius = semimaj*(1-e)*(m_jup/(3*m_sun))**(1/3) # Hill radius of Jupiter [km]
 
+
 ## PARTICLE PARAMETERS
-r_dust = 1e-6  # radius of the particle [m]
-density = 1500  # kg/m^3
-m_dust = (4. / 3) * (r_dust ** 3) * density  # [kg]
-beta = 2.278887e-02  # solar radiation pressure coefficient
+# r_dust = 1.934042e-08  # radius of the particle [m]
+# density = 1500  # kg/m^3
+# m_dust = 1.000000E-19 #(4. / 3) * (r_dust ** 3) * density * pi  # [kg]
+
+r_dust = 1e-06  # radius of the particle [m]
+density = 2500  # kg/m^3
+m_dust = (4. / 3) * (r_dust ** 3) * density * pi  # [kg]
+
+beta = 0.1  # solar radiation pressure coefficient
 particle_potential_fixed = 5 ## in V fixed value if not chosen as model dependent
 particle_potential_model_dependent = 0 ## if set to 1, we have to use a model for the potential (a table with the potential as function of the particle position in the system  TBC)
 
