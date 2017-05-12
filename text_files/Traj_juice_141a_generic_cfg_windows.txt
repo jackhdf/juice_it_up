@@ -1,0 +1,30 @@
+\begindata
+
+
+PATH_VALUES     = ( 'C:\Users\Jackhdf\Dropbox\ESA\Code\Current_Code' )
+PATH_SYMBOLS    = ( 'KERNELS' )
+
+KERNELS_TO_LOAD = (
+'$KERNELS/lsk/naif0011.tls',     	           
+        	   '$KERNELS/spk/new_norcia.bsp',
+                   '$KERNELS/spk/mantra_juice_jup_a5d_141a_lau_c5e_016.bsp',
+                   '$KERNELS/spk/de405.bsp',
+		   
+'$KERNELS/spk/noe-5-2010-gal-a2.bsp',
+		   '$KERNELS/spk/earthstns_itrf93_050714.bsp',
+		   
+'$KERNELS/pck/pck00010.tpc',
+                                      '$KERNELS/pck/earth_070425_370426_predict.bpc'
+	           
+'$KERNELS/fk/new_norcia_topo.tf',
+                   
+'$KERNELS/fk/earth_topo_050714.tf',
+                   
+'$KERNELS/fk/earthfixediau.tf',
+            
+'$KERNELS/fk/juice_sci_v04.tf',
+       
+'$KERNELS/fk/earthfixeditrf93.tf')
+
+
+\begintext
